@@ -1,12 +1,10 @@
 from keybert import KeyBERT
 from sentence_transformers import SentenceTransformer, util
-from ...core.models.constants import ACTIVITIES
+from constants import ACTIVITIES
 
 kw_model = KeyBERT()
 model = SentenceTransformer("all-mpnet-base-v2")
 
-
-def get_relevant_activity_via_context_for_batch(passages):
     # Generate embeddings for all passages in the batch
     passage_embeddings = model.encode(passages, convert_to_tensor=True)
 
@@ -37,10 +35,6 @@ def get_relevant_activity_via_context_for_batch(passages):
     # Return the list of activities in the same order as the input passages
     return activities_for_passages
 
-
-def get_most_relevant_activity_for_batch(contents):
-    # Call the updated function to process the batch
-    return get_relevant_activity_via_context_for_batch(contents)
 
 
 def get_relevant_activity_via_context(pass_content):

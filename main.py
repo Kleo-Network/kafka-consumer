@@ -1,3 +1,8 @@
+from tasks.db import *
+from tasks.classify import * 
+from tasks.upload import *
+from tasks.pii import *
+
 import sys
 import time
 
@@ -102,12 +107,34 @@ class RecordProcessor(processor.RecordProcessorBase):
         ####################################
         # Insert your processing logic here
         ####################################
+
+        # call size calculation function and save to database from here itself 
+        size = len(data)
+        history_item = get_history_by_id(data["_id"])
+        address = history_item["address"]
+        user = increment_data_quantity(address, size)
+        
+        # update the database -> history update and activity_graph update 
+        activity_json = user["activity_json"]
+        activity = get_most_relevant_activity(data["summary"])
+        if activity not in activity_json:
+            activity_json[activity] = 1
+        else:
+            activity_json[activity] += 1
+        
+        
+        if get_total_history_and_check_fifty(address):
+            history_items = get_user_history(address)
+            prepared_json = prepare_history_json(history_items, address, user)
+            irys_hash = upload_to_arweave(prepared_json)
+            update_user_by_address(address, {"activity_json": activity_json, "previous_hash": irys_hash})
+        else:
+            update_user_by_address(address, {"activity_json": activity_json})
+
         self.log(
-            "Record (Partition Key: {pk}, Sequence Number: {seq}, Subsequence Number: {sseq}, Data Size: {ds}".format(
-                pk=partition_key,
-                seq=sequence_number,
-                sseq=sub_sequence_number,
-                ds=data,
+            "Activity {activity}, Data Size: {ds}".format(
+                activity=activity,
+                ds=size
             )
         )
 
