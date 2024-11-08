@@ -109,34 +109,37 @@ class RecordProcessor(processor.RecordProcessorBase):
         ####################################
 
         # call size calculation function and save to database from here itself 
-        size = len(data)
-        history_item = get_history_by_id(data["_id"])
-        address = history_item["address"]
-        user = increment_data_quantity(address, size)
+        try:
+            size = len(data)
+            data_json = json.loads(data.decode("utf-8"))
+            history_item = get_history_by_id(data_json["_id"])
+            address = history_item["address"]
+            user = increment_data_quantity(address, size)
         
         # update the database -> history update and activity_graph update 
-        activity_json = user["activity_json"]
-        activity = get_most_relevant_activity(data["summary"])
-        if activity not in activity_json:
-            activity_json[activity] = 1
-        else:
-            activity_json[activity] += 1
+            activity_json = user["activity_json"]
+            activity = get_most_relevant_activity(data_json.get("summary", data_json.get("title", "")))
+            if activity not in activity_json:
+                activity_json[activity] = 1
+            else:
+                activity_json[activity] += 1
         
         
-        if get_total_history_and_check_fifty(address):
-            history_items = get_user_history(address)
-            prepared_json = prepare_history_json(history_items, address, user)
-            irys_hash = upload_to_arweave(prepared_json)
-            update_user_by_address(address, {"activity_json": activity_json, "previous_hash": irys_hash})
-        else:
-            update_user_by_address(address, {"activity_json": activity_json})
+            if get_total_history_and_check_fifty(address):
+                history_items = get_user_history(address)
+                prepared_json = prepare_history_json(history_items, address, user)
+                irys_hash = upload_to_arweave(prepared_json)
+                update_user_by_address(address, {"activity_json": activity_json, "previous_hash": irys_hash})
+            else:
+                update_user_by_address(address, {"activity_json": activity_json})
+            
+            self.log("Activity {activity}, Data Size: {ds}".format(
+                    activity=activity,
+                    ds=size))
+        except:
+            pass
 
-        self.log(
-            "Activity {activity}, Data Size: {ds}".format(
-                activity=activity,
-                ds=size
-            )
-        )
+        
 
     def should_update_sequence(self, sequence_number, sub_sequence_number):
         """
