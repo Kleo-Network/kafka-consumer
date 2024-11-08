@@ -2,6 +2,7 @@ from tasks.db import *
 from tasks.classify import * 
 from tasks.upload import *
 from tasks.pii import *
+import json
 
 import sys
 import time
@@ -115,27 +116,24 @@ class RecordProcessor(processor.RecordProcessorBase):
             history_item = get_history_by_id(data_json["_id"])
             address = history_item["address"]
             user = increment_data_quantity(address, size)
-        
+
         # update the database -> history update and activity_graph update 
             activity_json = user["activity_json"]
             activity = get_most_relevant_activity(data_json.get("summary", data_json.get("title", "")))
+            kleo_points = user["kleo_points"]
             if activity not in activity_json:
                 activity_json[activity] = 1
             else:
                 activity_json[activity] += 1
-        
-        
+
             if get_total_history_and_check_fifty(address):
                 history_items = get_user_history(address)
                 prepared_json = prepare_history_json(history_items, address, user)
                 irys_hash = upload_to_arweave(prepared_json)
-                update_user_by_address(address, {"activity_json": activity_json, "previous_hash": irys_hash})
+                update_user_by_address(address, {"activity_json": activity_json, "previous_hash": irys_hash ,"kleo_points": int(kleo_points)+12})
             else:
-                update_user_by_address(address, {"activity_json": activity_json})
+                u = update_user_by_address(address, {"activity_json": activity_json})
             
-            self.log("Activity {activity}, Data Size: {ds}".format(
-                    activity=activity,
-                    ds=size))
         except:
             pass
 

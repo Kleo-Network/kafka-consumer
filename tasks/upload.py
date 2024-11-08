@@ -23,15 +23,17 @@ def upload_to_arweave(json_object):
 
 
 def prepare_history_json(history_items, address, user):
+    print(history_items)
+
     activities = {}
     items = {"content": []}
     from_stamp = float("inf")
     to_stamp = 0
     points = int(user["kleo_points"]) if user else 0
-
+    print(history_items)
     for item in history_items:
         activities[item["category"]] = activities.get(item["category"], 0) + 1
-
+        print(item)
         # Handle summary fallback to title
         items["content"].append(item.get("summary", "NO CONTENT"))
         items["content"].append(item.get("url", "NO URL"))
@@ -42,7 +44,7 @@ def prepare_history_json(history_items, address, user):
 
         points += 1
 
-    previous_hash = user.get("previous_hash", "") if user else ""
+    previous_hash = user.get("previous_hash", "default_hash") if user else "default_hash"
 
     json_object = {
         "activities": activities,
@@ -52,5 +54,6 @@ def prepare_history_json(history_items, address, user):
         "toStamp": to_stamp,
         "previous_hash": previous_hash,
     }
+    print(json_object)
 
     return json_object

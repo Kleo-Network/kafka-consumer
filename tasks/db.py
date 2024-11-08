@@ -64,35 +64,54 @@ def update_history_item(history_id, update_data):
 def increment_data_quantity(address, increment_factor):
     """
     Increment total_data_quantity and milestones.data_owned by specified factor
+    with case-insensitive address matching
     """
     try:
         update_result = db.users.find_one_and_update(
-            {"address": address},
+            {
+                "address": {
+                    "$regex": f"^{address}$",
+                    "$options": "i"
+                }
+            },
             {
                 "$inc": {
                     "total_data_quantity": increment_factor,
                     "milestones.data_owned": increment_factor
                 }
             },
-            projection={"_id": 0},
-            upsert=True,  # Create if doesn't exist
+            projection={"_id": 0, "activity_json": 1, "previous_hash": 1, "kleo_points": 1},
+            upsert=False,  # Create if doesn't exist
             return_document=pymongo.ReturnDocument.AFTER
         )
+        print("update")
+        print(update_result)
         return update_result
         
     except Exception as e:
         print(f"Error incrementing data quantity: {e}")
         return None
 
+
 def update_user_by_address(address, update_data):
     try:
-        if not db.users.find_one({"address": address}):
+        if not db.users.find_one({
+            "address": {
+                "$regex": f"^{address}$",
+                "$options": "i"
+            }
+        }):
             return None
             
         filtered_update = {k: v for k, v in update_data.items() if v is not None}
         
         updated_user = db.users.find_one_and_update(
-            {"address": address},
+            {
+                "address": {
+                    "$regex": f"^{address}$",
+                    "$options": "i"
+                }
+            },
             {"$set": filtered_update},
             projection={"_id": 0},  # Exclude _id field
             return_document=pymongo.ReturnDocument.AFTER
@@ -145,9 +164,9 @@ def get_user_history(address, limit=50):
 def get_total_history_and_check_fifty(address):
     try:
         total_count = db.history.count_documents({"address": address})
-        is_multiple_of_fifty = total_count % 50 == 0 and total_count != 0
+        is_multiple_of_fifty = total_count % 1 == 0 and total_count != 0
         
-        return total_count, is_multiple_of_fifty
+        return is_multiple_of_fifty
         
     except Exception as e:
         print(f"Error getting history count: {e}")
